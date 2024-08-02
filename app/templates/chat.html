@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .chat-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-history {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .user-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .send-button {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-history" id="chatHistory"></div>
+        <input type="text" class="user-input" id="userInput" placeholder="Type your message...">
+        <button class="send-button" id="sendButton">Send</button>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            var chatId = '123';
+            var promptId = 'prompt2';
+
+            $('#sendButton').click(function() {
+                var userInput = $('#userInput').val();
+                if (userInput.trim() !== '') {
+                    $('#chatHistory').append('<p><strong>You:</strong> ' + userInput + '</p>');
+                    $('#userInput').val('');
+
+                    $.ajax({
+                        url: '/chat',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            promptId: promptId,
+                            userInput: userInput,
+                            chatId: chatId,
+                        }),
+                        success: function(response) {
+                            var result = response.result;
+                            var nextPrompts = response.nextPrompts;
+                            history = response.history;
+
+                            $('#chatHistory').append('<p><strong>Assistant:</strong> ' + result + '</p>');
+                            $('#chatHistory').scrollTop($('#chatHistory')[0].scrollHeight);
+
+                            // Update the promptId for the next request
+                            if (nextPrompts.length > 0) {
+                                promptId = nextPrompts[0].id;
+                            }
+                        },
+                        error: function() {
+                            alert('An error occurred. Please try again.');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

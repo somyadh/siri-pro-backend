@@ -1,0 +1,99 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prompt Orchestration</title>
+    <style>
+        .prompt-cell {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .prompt-text {
+            font-weight: bold;
+        }
+        .user-input {
+            margin-top: 10px;
+        }
+        .response-cell {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .code-block {
+            background-color: #f0f0f0;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre;
+        }
+        .loading {
+            display: none;
+        }
+    </style>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> -->
+</head>
+<body>
+    <h1>Prompt Orchestration</h1>
+    <div id="promptCells">
+        {% for prompt in prompts.values() %}
+        <div class="prompt-cell">
+            <div class="prompt-text">{{ prompt.text }}</div>
+            <div class="user-input">
+                <input type="text" placeholder="Enter additional text...">
+            </div>
+            <button onclick="executePrompt('{{ prompt.id }}', this)">Execute</button>
+            <div class="loading">Loading...</div>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        function executePrompt(promptId, button) {
+            const cell = button.closest('.prompt-cell');
+            const userInput = cell.querySelector('.user-input input').value;
+            const loading = cell.querySelector('.loading');
+
+            loading.style.display = 'block';
+
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ promptId: promptId, userInput: userInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                displayResponse(cell, data.result);
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                displayResponse(cell, 'Error occurred while executing the prompt.');
+            });
+        }
+
+        function displayResponse(cell, response) {
+            const responseCell = document.createElement('div');
+            responseCell.classList.add('response-cell');
+
+            // Regular expression patterns for code blocks and markdown
+            const codeBlockPattern = /```([\s\S]*?)```/g;
+            const markdownPattern = /(?:^|\n)(#+\s.*|[*+-]\s.*|>\s.*)/g;
+
+            // Replace code blocks with <pre> elements
+            response = response.replace(codeBlockPattern, (match, code) => {
+                return `<pre class="code-block">${code.trim()}</pre>`;
+            });
+
+            // // Convert markdown to HTML
+            // response = response.replace(markdownPattern, (match) => {
+            //     return marked(match);
+            // });
+
+            responseCell.innerHTML = response;
+            cell.parentNode.insertBefore(responseCell, cell.nextSibling);
+        }
+    </script>
+</body>
+</html>
